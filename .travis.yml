@@ -1,36 +1,19 @@
-# configuration for https://travis-ci.org/bitcoinj/bitcoinj
 sudo: false
 language: java
-services:
-- docker
 cache:
   directories:
   - "$HOME/.cache"
-jdk: oraclejdk8
-install: true # remove default
-script:
-  - mvn -q clean install -Pno-network
-  - jdk_switcher use openjdk6
-  - cd orchid
-  - mvn -q clean package
-  - cd ../core
-  - mvn -q clean package -Pno-network
 deploy:
   provider: script
   script: "cp .travis.settings.xml $HOME/.m2/settings.xml && mvn deploy"
   skip_cleanup: true
   on:
-    tags: false
+    tags: true
     all_branches: true
 
-after_success:
-  - cd ../core
-  - mvn jacoco:report coveralls:report
-
 notifications:
-  irc:
-    channels: "irc.freenode.net#bitcoincashj"
-    skip_join: true
-
-
-
+  email:
+    recipients:
+    - c.lopez@kmels.net
+    on_success: change
+    on_failure: always
