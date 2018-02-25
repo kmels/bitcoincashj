@@ -1,19 +1,15 @@
+# configuration for https://travis-ci.org/bitcoincash-wallet/bitcoincashj
 sudo: false
+dist: trusty
 language: java
-cache:
-  directories:
-  - "$HOME/.cache"
-deploy:
-  provider: script
-  script: "cp .travis.settings.xml $HOME/.m2/settings.xml && mvn deploy"
-  skip_cleanup: true
-  on:
-    tags: true
-    all_branches: true
+jdk: oraclejdk8
+install: true # remove default
+script:
+  - mvn -q clean install -Pno-network
+  - jdk_switcher use openjdk7
+  - cd core
+  - mvn -q clean package -Pno-network
 
-notifications:
-  email:
-    recipients:
-    - c.lopez@kmels.net
-    on_success: change
-    on_failure: always
+after_success:
+  - cd ../core
+  - mvn jacoco:report coveralls:report
