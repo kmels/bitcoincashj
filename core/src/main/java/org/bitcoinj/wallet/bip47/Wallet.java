@@ -13,8 +13,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
+import com.subgraph.orchid.data.exitpolicy.Network;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.bitcoinj.core.*;
 import org.bitcoinj.core.listeners.OnTransactionBroadcastListener;
+import org.bitcoinj.signers.TransactionSigner;
+import org.bitcoinj.wallet.*;
 import org.bitcoinj.wallet.bip47.BIP47Util;
 import org.bitcoinj.wallet.bip47.Bip47Address;
 import org.bitcoinj.wallet.bip47.Bip47Meta;
@@ -27,23 +31,6 @@ import org.bitcoinj.crypto.bip47.Account;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.BlockChain;
-import org.bitcoinj.core.CashAddress;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Context;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Peer;
-import org.bitcoinj.core.PeerAddress;
-import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.core.ScriptException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Utils;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.HDKeyDerivation;
@@ -53,12 +40,6 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.SPVBlockStore;
-import org.bitcoinj.wallet.CoinSelection;
-import org.bitcoinj.wallet.KeyChainGroup;
-import org.bitcoinj.wallet.Protos;
-import org.bitcoinj.wallet.RedeemData;
-import org.bitcoinj.wallet.SendRequest;
-import org.bitcoinj.wallet.WalletProtobufSerializer;
 import org.bitcoinj.wallet.bip47.models.StashDeterministicSeed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,31 +54,34 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Created by jimmy on 9/28/17.
  */
 
-public class Wallet {
-    private static final String TAG = "Wallet";
-
-    protected final Blockchain blockchain;
+/**
+ * <p>A {@link Wallet} that runs in SPV mode and supports BIP 47 payments for coins BTC, BCH, tBTC and tBCH. </p>
+ *
+ * <p>To use it, you will provide a designated directory where this class will store the coin wallets and the SPV chains.</p>
+ *
+ * <p>By calling {@link Wallet.start()}, this wallet will automatically import payment addresses when a Bip 47
+ * notification transaction is received.</p>
+ *
+ */
+public class Wallet extends org.bitcoinj.wallet.Wallet {
     private volatile BlockChain vChain;
     private volatile BlockStore vStore;
-    private volatile org.bitcoinj.wallet.Wallet vWallet;
     private volatile PeerGroup vPeerGroup;
 
-    private final File directory;
-    private volatile File vWalletFile;
+    private volatile File directory;
+    private String coin;
 
     private StashDeterministicSeed restoreFromSeed;
 
@@ -107,16 +91,13 @@ public class Wallet {
     private TransactionEventListener mTransactionEventListener = null;
 
     private boolean mBlockchainDownloadStarted = false;
-
     private ConcurrentHashMap<String, Bip47Meta> bip47MetaData = new ConcurrentHashMap<>();
     private static final Logger log = LoggerFactory.getLogger(Wallet.class);
 
-    public Wallet(Blockchain blockchain, File walletDirectory, @Nullable StashDeterministicSeed deterministicSeed) throws Exception {
-        this.blockchain = blockchain;
-
-        this.directory = new File(walletDirectory, blockchain.getCoin());
-
-        this.restoreFromSeed = deterministicSeed;
+    public Wallet(NetworkParameters params, File directory, String coin, @Nullable StashDeterministicSeed deterministicSeed) throws Exception {
+        super(params);
+        Context.propagate(new Context(getNetworkParameters()));
+        this.directory = new File(directory, coin);;
 
         if (!directory.exists()) {
             if (!directory.mkdirs()) {
@@ -124,149 +105,212 @@ public class Wallet {
             }
         }
 
-        File chainFile = new File(directory, blockchain.getCoin() + ".spvchain");
-        boolean chainFileExists = chainFile.exists();
-        vWalletFile = new File(directory, blockchain.getCoin() + ".wallet");
-        log.debug("Wallet: "+getCoin());
-        boolean shouldReplayWallet = (vWalletFile.exists() && !chainFileExists) || restoreFromSeed != null;
+        this.coin = coin;
+        this.restoreFromSeed = deterministicSeed;
 
-        Context.propagate(new Context(blockchain.getNetworkParameters()));
-        vWallet = createOrLoadWallet(shouldReplayWallet);
-        setAccount();
+        File walletFile = getWalletFile();
+        boolean chainFileExists = getChainFile().exists();
+        boolean shouldReplayWallet = (walletFile.exists() && !chainFileExists) || deterministicSeed != null;
+
+        Context.propagate(new Context(getNetworkParameters()));
+
+        org.bitcoinj.wallet.Wallet coreWallet;
+
+        if (getWalletFile().exists()) {
+            coreWallet = loadWallet(getNetworkParameters(), shouldReplayWallet, walletFile);
+        } else {
+            coreWallet = createWallet(getNetworkParameters());
+            coreWallet.freshReceiveKey();
+            coreWallet.saveToFile(walletFile);
+            coreWallet = loadWallet(getNetworkParameters(), false, walletFile);
+        }
+
+        checkNotNull(coreWallet);
+        autosaveToFile(walletFile, 5, TimeUnit.SECONDS, null);
+
+        addWatchedScripts(coreWallet.getWatchedScripts());
+        if (coreWallet.getDescription() != null) {
+            setDescription(coreWallet.getDescription());
+        }
+
+        if (shouldReplayWallet) {
+            // Should mirror Wallet.reset()
+            setLastBlockSeenHash(null);
+            setLastBlockSeenHeight(-1);
+            setLastBlockSeenTimeSecs(0);
+        } else {
+            // Update the lastBlockSeenHash.
+            setLastBlockSeenHash(coreWallet.getLastBlockSeenHash());
+            setLastBlockSeenHeight(coreWallet.getLastBlockSeenHeight());
+            setLastBlockSeenTimeSecs(coreWallet.getLastBlockSeenTimeSecs());
+
+            // Update transaction outputs to point to inputs that spend them
+            Iterator<WalletTransaction> iter = coreWallet.getWalletTransactions().iterator();
+            while(iter.hasNext())
+                addWalletTransaction(iter.next());
+
+            if (coreWallet.getKeyRotationTime() != null)
+                setKeyRotationTime(coreWallet.getKeyRotationTime());
+        }
+
+        //loadExtensions(wallet, extensions != null ? extensions : new WalletExtension[0], walletProto);
+
+        this.tags = coreWallet.getTags();
+
+        for (TransactionSigner signer : coreWallet.getTransactionSigners()) {
+            addTransactionSigner(signer);
+        }
+
+        setVersion(coreWallet.getVersion());
+
+        setAccount(params);
 
         Address notificationAddress = mAccounts.get(0).getNotificationAddress();
         log.debug("Wallet notification address: "+notificationAddress.toString());
 
-        if (!vWallet.isAddressWatched(notificationAddress)) {
-            vWallet.addWatchedAddress(notificationAddress);
+        if (!coreWallet.isAddressWatched(notificationAddress)) {
+            addWatchedAddress(notificationAddress);
         }
 
-        vWallet.allowSpendingUnconfirmedTransactions();
+        allowSpendingUnconfirmedTransactions();
 
-        log.debug(vWallet.toString());
-    }
 
-    private org.bitcoinj.wallet.Wallet createOrLoadWallet(boolean shouldReplayWallet) throws Exception {
-        org.bitcoinj.wallet.Wallet wallet;
+        // init
+        File chainFile = getChainFile();
 
-        if (vWalletFile.exists()) {
-            wallet = loadWallet(shouldReplayWallet);
-        } else {
-            wallet = createWallet();
-            wallet.freshReceiveKey();
+        // Initiate Bitcoin network objects (block store, blockchain and peer group)
+        vStore = new SPVBlockStore(getNetworkParameters(), chainFile);
+        if (restoreFromSeed != null && chainFileExists) {
+            log.info( "Deleting the chain file in preparation from restore.");
+            vStore.close();
+            if (!chainFile.delete())
+                log.warn("start: ", new IOException("Failed to delete chain file in preparation for restore."));
+            vStore = new SPVBlockStore(getNetworkParameters(), chainFile);
+        }
+        vChain = new BlockChain(getNetworkParameters(), vStore);
+        vPeerGroup = new PeerGroup(getNetworkParameters(), vChain);
 
-            wallet.saveToFile(vWalletFile);
-            wallet = loadWallet(false);
+        // Fixes a bug created by a race condition between a filteredBlock and a notification transaction
+        // (transaction dependencies are asynchronous (See issue 1029))
+        // By rolling the blockstore one block, we will be sure that the generated keys were imported to the wallet.
+        vPeerGroup.addOnTransactionBroadcastListener(new OnTransactionBroadcastListener() {
+            @Override
+            public void onTransaction(Peer peer, Transaction t) {
+                if (isNotificationTransaction(t)){
+                    if (getTransaction(t.getHash())!=null)
+                        return;
+                    log.debug("Valid notification transaction found for the first time. Replaying a block back .. ");
+                    try {
+                        vChain.rollbackBlockStore(getLastBlockSeenHeight() - 1);
+                    } catch(BlockStoreException e){
+                        log.error("Could not rollback ... " );
+                    }
+                }
+            }
+        });
+
+        if (getCoin().equals("BCH")) {
+            vPeerGroup.addAddress(new PeerAddress(InetAddresses.forString("158.69.119.35"), 8333));
+            vPeerGroup.addAddress(new PeerAddress(InetAddresses.forString("144.217.73.86"), 8333));
+        } else if (getCoin().equals("tBCH")) {
+            vPeerGroup.addAddress(new PeerAddress(InetAddresses.forString("158.69.119.35"), 8333));
+            vPeerGroup.addAddress(new PeerAddress(InetAddresses.forString("144.217.73.86"), 18333));
         }
 
-        wallet.autosaveToFile(vWalletFile, 5, TimeUnit.SECONDS, null);
+        vPeerGroup.setUseLocalhostPeerWhenPossible(true);
+        vPeerGroup.addPeerDiscovery(new DnsDiscovery(getNetworkParameters()));
 
-        return wallet;
+        vChain.addWallet(this);
+        vPeerGroup.addWallet(this);
+
+        log.debug(toString());
     }
 
-    private org.bitcoinj.wallet.Wallet loadWallet(boolean shouldReplayWallet) throws Exception {
+    public Wallet(NetworkParameters params, KeyChainGroup kcg){
+        super(params, kcg);
+    }
+
+    // Return the corresponding file for the wallet's coin
+    protected File getWalletFile(){
+        return new File(directory, getCoin() + ".wallet");
+    }
+
+    // Return the wallet's SPVChain
+    protected File getChainFile(){
+        return new File(directory, getCoin() + ".spvchain");
+    }
+
+
+    // When a payment channel is created with a BIP47 notification transaction, the first payment
+    // can be in the same block or in the next block(s). In any case, the notification transaction will
+    // contain a payment code from Bob. The payment code is used to import keys to this wallet.
+    //
+    // If a block arrives with a notification transaction, the block may not have waited enough for the keys
+    // to be imported into this wallet and therefore missing the payment transaction in the block.
+    //
+    // We want to redownload a block if we have notification without a subsequent payment transaction
+    private int blockNtxs = 0;
+    @Override
+    public boolean checkForFilterExhaustion(FilteredBlock block) {
+        List<Transaction> txsInBlock = new ArrayList<>();
+
+        for (Transaction tx : getTransactions()){
+            if (tx.getConfidence().getAppearedAtChainHeight() - 1 == getLastBlockSeenHeight() ) {
+                if (isNotificationTransaction(tx))
+                    blockNtxs++;
+
+                if (blockNtxs == 5)
+                    return super.checkForFilterExhaustion(block);
+            }
+        }
+        return super.checkForFilterExhaustion(block);
+    }
+
+    private static org.bitcoinj.wallet.Wallet loadWallet(NetworkParameters networkParameters, boolean shouldReplayWallet, File vWalletFile) throws Exception {
         try (FileInputStream walletStream = new FileInputStream(vWalletFile)) {
             Protos.Wallet proto = WalletProtobufSerializer.parseToProto(walletStream);
             final WalletProtobufSerializer serializer = new WalletProtobufSerializer();
-            org.bitcoinj.wallet.Wallet wallet = serializer.readWallet(blockchain.getNetworkParameters(), null, proto);
+            org.bitcoinj.wallet.Wallet wallet = serializer.readWallet(networkParameters, null, proto);
             if (shouldReplayWallet)
                 wallet.reset();
             return wallet;
         }
     }
 
-    private org.bitcoinj.wallet.Wallet createWallet() {
+    private Wallet createWallet(NetworkParameters networkParameters) throws IOException {
         KeyChainGroup kcg;
         if (restoreFromSeed != null)
-            kcg = new KeyChainGroup(blockchain.getNetworkParameters(), restoreFromSeed);
+            kcg = new KeyChainGroup(networkParameters, restoreFromSeed);
         else
-            kcg = new KeyChainGroup(blockchain.getNetworkParameters());
-        return new org.bitcoinj.wallet.Wallet(blockchain.getNetworkParameters(), kcg);  // default
+            kcg = new KeyChainGroup(networkParameters);
+        return new Wallet(networkParameters, kcg);  // default
     }
 
     public String getCoin() {
-        return blockchain.getCoin();
+        return this.coin;
     }
 
-    public void setAccount() {
-        log.debug("Seed: "+vWallet.getKeyChainSeed());
+    public void setAccount(NetworkParameters networkParameters) {
+        log.debug("Seed: "+this.getKeyChainSeed());
 
-        byte[] hd_seed = vWallet.getKeyChainSeed().getSeedBytes();
+        byte[] hd_seed = this.getKeyChainSeed().getSeedBytes();
 
         DeterministicKey mKey = HDKeyDerivation.createMasterPrivateKey(hd_seed);
         DeterministicKey purposeKey = HDKeyDerivation.deriveChildKey(mKey, 47 | ChildNumber.HARDENED_BIT);
         DeterministicKey coinKey = HDKeyDerivation.deriveChildKey(purposeKey, ChildNumber.HARDENED_BIT);
-
-        Account account = new Account(blockchain.getNetworkParameters(), coinKey, 0);
+        Account account = new Account(networkParameters, coinKey, 0);
 
         mAccounts.clear();
         mAccounts.add(account);
     }
 
     public void start(boolean startBlockchainDownload) {
-        Context.propagate(new Context(blockchain.getNetworkParameters()));
-        File chainFile = new File(directory, blockchain.getCoin() + ".spvchain");
-        boolean chainFileExists = chainFile.exists();
-
-        try {
-            // Initiate Bitcoin network objects (block store, blockchain and peer group)
-            vStore = new SPVBlockStore(blockchain.getNetworkParameters(), chainFile);
-            if (restoreFromSeed != null && chainFileExists) {
-                log.info( "Deleting the chain file in preparation from restore.");
-                vStore.close();
-                if (!chainFile.delete())
-                    log.warn("start: ", new IOException("Failed to delete chain file in preparation for restore."));
-                vStore = new SPVBlockStore(blockchain.getNetworkParameters(), chainFile);
-            }
-            vChain = new BlockChain(blockchain.getNetworkParameters(), vStore);
-            vPeerGroup = new PeerGroup(blockchain.getNetworkParameters(), vChain);
-
-            // Fixes a bug created by a race condition between a filteredBlock and a notification transaction
-            // (transaction dependencies are asynchronous (See issue 1029))
-            // By rolling the blockstore one block, we will be sure that the generated keys were imported to the wallet.
-            vPeerGroup.addOnTransactionBroadcastListener(new OnTransactionBroadcastListener() {
-                @Override
-                public void onTransaction(Peer peer, Transaction t) {
-                    if (isNotificationTransaction(t) && peer.getCurrentFilteredBlock() != null){
-
-                        if (vWallet.getTransaction(t.getHash()) != null) {
-                            log.debug("Already seen this notification transaction. ");
-                            return;
-                        }
-                        log.debug("Valid notification transaction found. Replaying a block back .. ");
-                        try {
-                            vChain.rollbackBlockStore(vWallet.getLastBlockSeenHeight() - 1);
-                        } catch(BlockStoreException e){
-                            log.error("Could not rollback ... " );
-                        }
-                    }
-                }
-            });
-
-            if (blockchain.getCoin().equals("BCH")) {
-                vPeerGroup.addAddress(new PeerAddress(InetAddresses.forString("158.69.119.35"), 8333));
-                vPeerGroup.addAddress(new PeerAddress(InetAddresses.forString("144.217.73.86"), 8333));
-            } else if (blockchain.getCoin().equals("tBCH")) {
-                vPeerGroup.addAddress(new PeerAddress(InetAddresses.forString("158.69.119.35"), 8333));
-                vPeerGroup.addAddress(new PeerAddress(InetAddresses.forString("144.217.73.86"), 18333));
-            }
-
-            vPeerGroup.setUseLocalhostPeerWhenPossible(true);
-            vPeerGroup.addPeerDiscovery(new DnsDiscovery(blockchain.getNetworkParameters()));
-
-            vChain.addWallet(vWallet);
-            vPeerGroup.addWallet(vWallet);
-
-            if (startBlockchainDownload) {
-                startBlockchainDownload();
-            }
-        } catch (BlockStoreException e) {
-            log.warn("start: ", e);
-
+        if (startBlockchainDownload) {
+            startBlockchainDownload();
         }
     }
 
-    public void startBlockchainDownload() {
+    private void startBlockchainDownload() {
         if (isStarted() && !mBlockchainDownloadStarted) {
             log.debug("Starting blockchain download.");
             vPeerGroup.start();
@@ -288,7 +332,7 @@ public class Wallet {
         if (vPeerGroup.isRunning()) vPeerGroup.stopAsync();
         try {
             log.debug("Saving wallet");
-            vWallet.saveToFile(vWalletFile);
+            saveToFile(getWalletFile());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -364,7 +408,7 @@ public class Wallet {
 
     public synchronized void saveBip47MetaData() {
         try {
-            vWallet.saveToFile(vWalletFile);
+            saveToFile(getWalletFile());
         } catch (IOException io){
             log.error("Failed to save wallet file",io);
         }
@@ -386,17 +430,17 @@ public class Wallet {
 
     public void addTransactionEventListener(TransactionEventListener coinsReceivedEventListener) {
         if (mTransactionEventListener != null) {
-            vWallet.removeCoinsReceivedEventListener(mTransactionEventListener);
-            vWallet.removeTransactionConfidenceEventListener(mTransactionEventListener);
+            removeCoinsReceivedEventListener(mTransactionEventListener);
+            removeTransactionConfidenceEventListener(mTransactionEventListener);
         }
 
-        vWallet.removeCoinsReceivedEventListener(coinsReceivedEventListener);
-        vWallet.removeTransactionConfidenceEventListener(coinsReceivedEventListener);
+        removeCoinsReceivedEventListener(coinsReceivedEventListener);
+        removeTransactionConfidenceEventListener(coinsReceivedEventListener);
 
         coinsReceivedEventListener.setWallet(this);
 
-        vWallet.addCoinsReceivedEventListener(coinsReceivedEventListener);
-        vWallet.addTransactionConfidenceEventListener(coinsReceivedEventListener);
+        addCoinsReceivedEventListener(coinsReceivedEventListener);
+        addTransactionConfidenceEventListener(coinsReceivedEventListener);
 
         mTransactionEventListener = coinsReceivedEventListener;
     }
@@ -409,7 +453,7 @@ public class Wallet {
     }
 
     public boolean isToBIP47Address(Transaction transaction) {
-        List<ECKey> keys = vWallet.getImportedKeys();
+        List<ECKey> keys = getImportedKeys();
         for (ECKey key : keys) {
             Address address = key.toAddress(getNetworkParameters());
             if (address == null) {
@@ -426,9 +470,9 @@ public class Wallet {
     public Address getAddressOfReceived(Transaction tx) {
         for (final TransactionOutput output : tx.getOutputs()) {
             try {
-                if (output.isMineOrWatched(vWallet)) {
+                if (output.isMineOrWatched(this)) {
                     final Script script = output.getScriptPubKey();
-                    return script.getToAddress(blockchain.getNetworkParameters(), true);
+                    return script.getToAddress(getNetworkParameters(), true);
                 }
             } catch (final ScriptException x) {
                 // swallow
@@ -441,9 +485,9 @@ public class Wallet {
     public Address getAddressOfSent(Transaction tx) {
         for (final TransactionOutput output : tx.getOutputs()) {
             try {
-                if (!output.isMineOrWatched(vWallet)) {
+                if (!output.isMineOrWatched(this)) {
                     final Script script = output.getScriptPubKey();
-                    return script.getToAddress(blockchain.getNetworkParameters(), true);
+                    return script.getToAddress(getNetworkParameters(), true);
                 }
             } catch (final ScriptException x) {
                 // swallow
@@ -492,16 +536,8 @@ public class Wallet {
         return mAccounts.get(i);
     }
 
-    public NetworkParameters getNetworkParameters() {
-        return blockchain.getNetworkParameters();
-    }
-
     public Address getAddressOfKey(ECKey key) {
         return key.toAddress(getNetworkParameters());
-    }
-
-    public void importKey(ECKey key) {
-        vWallet.importKey(key);
     }
 
     public boolean generateNewBip47IncomingAddress(String address) {
@@ -517,7 +553,7 @@ public class Wallet {
                 int nextIndex = bip47Meta.getCurrentIncomingIndex() + 1;
                 try {
                     ECKey key = BIP47Util.getReceiveAddress(this, bip47Meta.getPaymentCode(), nextIndex).getReceiveECKey();
-                    vWallet.importKey(key);
+                    importKey(key);
                     Address newAddress = getAddressOfKey(key);
                     bip47Meta.addNewIncomingAddress(newAddress.toString(), nextIndex);
                     bip47Address.setSeen(true);
@@ -574,27 +610,27 @@ public class Wallet {
     }
 
     public Coin getValueOfTransaction(Transaction transaction) {
-        return transaction.getValue(vWallet);
+        return transaction.getValue(this);
     }
 
     public Coin getValueSentToMe(Transaction transaction) {
-        return transaction.getValueSentToMe(vWallet);
+        return transaction.getValueSentToMe(this);
     }
 
     public Coin getValueSentFromMe(Transaction transaction) {
-        return transaction.getValueSentFromMe(vWallet);
+        return transaction.getValueSentFromMe(this);
     }
 
     public List<Transaction> getTransactions() {
-        return vWallet.getTransactionsByTime();
+        return getTransactionsByTime();
     }
 
     public long getBalanceValue() {
-        return vWallet.getBalance(org.bitcoinj.wallet.Wallet.BalanceType.ESTIMATED_SPENDABLE).getValue();
+        return getBalance(org.bitcoinj.wallet.Wallet.BalanceType.ESTIMATED_SPENDABLE).getValue();
     }
 
     public Coin getBalance() {
-        return vWallet.getBalance(org.bitcoinj.wallet.Wallet.BalanceType.ESTIMATED_SPENDABLE);
+        return getBalance(org.bitcoinj.wallet.Wallet.BalanceType.ESTIMATED_SPENDABLE);
     }
 
     public boolean isDownloading() {
@@ -608,12 +644,12 @@ public class Wallet {
     public boolean isTransactionEntirelySelf(Transaction tx) {
         for (final TransactionInput input : tx.getInputs()) {
             final TransactionOutput connectedOutput = input.getConnectedOutput();
-            if (connectedOutput == null || !connectedOutput.isMine(vWallet))
+            if (connectedOutput == null || !connectedOutput.isMine(this))
                 return false;
         }
 
         for (final TransactionOutput output : tx.getOutputs()) {
-            if (!output.isMine(vWallet))
+            if (!output.isMine(this))
                 return false;
         }
 
@@ -633,11 +669,11 @@ public class Wallet {
     }
 
     public String getMnemonicCode() {
-        return Joiner.on(" ").join(vWallet.getKeyChainSeed().getMnemonicCode());
+        return Joiner.on(" ").join(getKeyChainSeed().getMnemonicCode());
     }
 
     public Address getCurrentAddress() {
-        return vWallet.currentReceiveAddress();
+        return currentReceiveAddress();
     }
 
     public Address getAddressFromBase58(String addr) {
@@ -659,10 +695,6 @@ public class Wallet {
         }
     }
 
-    public Blockchain getBlockchain() {
-        return blockchain;
-    }
-
     public Transaction createSend(String strAddr, long amount) throws InsufficientMoneyException {
         Address address;
         try {
@@ -682,7 +714,7 @@ public class Wallet {
         if (!getNetworkParameters().getUseForkId()) {
             sendRequest.feePerKb = Coin.valueOf(141000);
         }
-        vWallet.completeTx(sendRequest);
+        completeTx(sendRequest);
         return sendRequest.tx;
     }
 
@@ -692,7 +724,7 @@ public class Wallet {
         Address ntAddress = toAccount.getNotificationAddress();
 
 
-        log.debug("Balance: " + vWallet.getBalance());
+        log.debug("Balance: " + getBalance());
         log.debug("To notification address: "+ntAddress.toString());
         log.debug("Value: "+ntValue.toFriendlyString());
 
@@ -704,7 +736,7 @@ public class Wallet {
 
         sendRequest.memo = "notification_transaction";
 
-        FeeCalculation feeCalculation = WalletUtil.calculateFee(vWallet, sendRequest, ntValue, vWallet.calculateAllSpendCandidates());
+        FeeCalculation feeCalculation = WalletUtil.calculateFee(this, sendRequest, ntValue, calculateAllSpendCandidates());
 
         for (TransactionOutput output :feeCalculation.bestCoinSelection.gathered) {
             sendRequest.tx.addInput(output);
@@ -712,7 +744,7 @@ public class Wallet {
 
         if (sendRequest.tx.getInputs().size() > 0) {
             TransactionInput txIn = sendRequest.tx.getInput(0);
-            RedeemData redeemData = txIn.getConnectedRedeemData(vWallet);
+            RedeemData redeemData = txIn.getConnectedRedeemData(this);
             checkNotNull(redeemData, "StashTransaction exists in wallet that we cannot redeem: %s", txIn.getOutpoint().getHash());
             log.debug("Keys: "+redeemData.keys.size());
             log.debug("Private key 0?: "+redeemData.keys.get(0).hasPrivKey());
@@ -739,7 +771,7 @@ public class Wallet {
         }
 
         if (complete)
-            vWallet.completeTx(sendRequest);
+            completeTx(sendRequest);
 
         log.debug("Completed SendRequest");
         log.debug(sendRequest.toString());
@@ -751,18 +783,12 @@ public class Wallet {
     }
 
     public Transaction getSignedNotificationTransaction(SendRequest sendRequest, String paymentCode) {
-        //Account toAccount = new Account(getNetworkParameters(), paymentCode);
-
-        // notification address pub key
-        //WalletUtil.signTransaction(vWallet, sendRequest, toAccount.getNotificationKey().getPubKey(), mAccounts.get(0).getPaymentCode());
-
-        vWallet.commitTx(sendRequest.tx);
-
+        commitTx(sendRequest.tx);
         return sendRequest.tx;
     }
 
     public ListenableFuture<Transaction> broadcastTransaction(Transaction transactionToSend) {
-        vWallet.commitTx(transactionToSend);
+        commitTx(transactionToSend);
         return vPeerGroup.broadcastTransaction(transactionToSend).future();
     }
 
@@ -800,24 +826,8 @@ public class Wallet {
         return null;
     }
 
-    public void commitTx(Transaction tx) {
-        vWallet.commitTx(tx);
-    }
-
-    public org.bitcoinj.wallet.Wallet.SendResult sendCoins(SendRequest sendRequest) throws InsufficientMoneyException {
-        return vWallet.sendCoins(sendRequest);
-    }
-
     static class FeeCalculation {
         CoinSelection bestCoinSelection;
         TransactionOutput bestChangeOutput;
-    }
-
-    public int getLastBlockSeenHeight(){
-        return this.vWallet.getLastBlockSeenHeight();
-    }
-
-    public Date getLastBlockSeenTime(){
-        return this.vWallet.getLastBlockSeenTime();
     }
 }
