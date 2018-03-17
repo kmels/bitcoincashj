@@ -642,7 +642,9 @@ public class Wallet {
     }
 
     public String getMnemonicCode() {
-        return Joiner.on(" ").join(vWallet.getKeyChainSeed().getMnemonicCode());
+        return this.restoreFromSeed != null ?
+                Joiner.on(" ").join(this.restoreFromSeed.getMnemonicCode()) :
+                Joiner.on(" ").join(vWallet.getKeyChainSeed().getMnemonicCode());
     }
 
     public Address getCurrentAddress() {

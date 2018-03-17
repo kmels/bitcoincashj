@@ -105,16 +105,13 @@ public class Bip47WalletTest extends TestWithBip47Wallet {
         Blockchain b = new Blockchain(0, MainNetParams.get(), SUPPORTED_COINS[1], "Bitcoin Core");
         //  - test bip 47
         Wallet w = createWallet(b,workingDir,ALICE_BIP39_MNEMONIC);
-        assertEquals("xpub6D3t231wUi5v9PEa8mgmyV7Tovg3CzrGEUGNQTfm9cK93je3PgX9udfhzUDx29pkeeHQBPpTSHpAxnDgsf2XRbvLrmbCUQybjtHx8SUb3JB", w.getAccount(0).getXPub());
         byte[] BTC_PUBKEY = w.getAccount(0).getPaymentCode().getPubKey();
-        //assertEquals("xpub6D3t231wUi5v9PEa8mgmyV7Tovg3CzrGEUGNQTfm9cK93je3PgX9udfhzUDx29pkeeHQBPpTSHpAxnDgsf2XRbvLrmbCUQybjtHx8SUb3JB", w.getAccount(0).getPaymentCode().getPubKey());
         assertEquals(ALICE_PAYMENT_CODE_V1, w.getPaymentCode());
+        assertEquals(ALICE_BIP39_MNEMONIC, w.getMnemonicCode());
         assertEquals(ALICE_NOTIFICATION_ADDRESS, w.getAccount(0).getNotificationAddress().toString());
 
         b = new Blockchain(1, TestNet3Params.get(), SUPPORTED_COINS[3], "Test Bitcoin Core");
         w = createWallet(b,workingDir,ALICE_BIP39_MNEMONIC);
-        //assertEquals("tpubDEctaKJzZ8eirGRVS7QREGzP2aX8VnnaLxEZtiRM8HQUah42oBtWxvdsviTbExdfQHHaVj3RxroN12iFNbR89XhLQbRFuQrwFjT2ZfZ99aJ", w.getAccount(0).getXPub());
-        //assertEquals("xpub6D3t231wUi5v9PEa8mgmyV7Tovg3CzrGEUGNQTfm9cK93je3PgX9udfhzUDx29pkeeHQBPpTSHpAxnDgsf2XRbvLrmbCUQybjtHx8SUb3JB", w.getAccount(0).getXPub());
         byte[] tBTC_PUBKEY = w.getAccount(0).getPaymentCode().getPubKey();
         assertEquals(HEX.encode(tBTC_PUBKEY), HEX.encode(BTC_PUBKEY));
         assertEquals(ALICE_PAYMENT_CODE_V1, w.getPaymentCode());
@@ -126,6 +123,7 @@ public class Bip47WalletTest extends TestWithBip47Wallet {
         byte[] BCH_PUBKEY = w.getAccount(0).getPaymentCode().getPubKey();
         assertEquals(HEX.encode(tBTC_PUBKEY), HEX.encode(BCH_PUBKEY));
         assertEquals(ALICE_PAYMENT_CODE_V1, w.getPaymentCode());
+        assertEquals(ALICE_BIP39_MNEMONIC, w.getMnemonicCode());
         assertEquals(ALICE_NOTIFICATION_ADDRESS, w.getAccount(0).getNotificationAddress().toString());
 
         b = new Blockchain(3, BCCTestNet3Params.get(), SUPPORTED_COINS[2], "Test Bitcoin Cash");
