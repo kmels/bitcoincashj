@@ -29,7 +29,7 @@ import org.spongycastle.jce.provider.BouncyCastleProvider;
 import javax.annotation.Nullable;
 
 public class Bip47WalletTest extends TestWithWallet {
-    private static final Logger log = LoggerFactory.getLogger(org.bitcoinj.wallet.WalletTest.class);
+    private static final Logger log = LoggerFactory.getLogger(Bip47WalletTest.class);
 
     //  - test vectors
     private final String ALICE_BIP39_MNEMONIC = "response seminar brave tip suit recall often sound stick owner lottery motion";
