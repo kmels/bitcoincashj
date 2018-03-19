@@ -39,8 +39,11 @@ import static org.bitcoinj.core.Utils.HEX;
 public class BIP47Util {
     private static final Logger log = LoggerFactory.getLogger(BIP47Util.class);
 
+    /**
+     * Finds the first output in a transaction whose op code is OP_RETURN.
+     */
     @Nullable
-    public static TransactionOutput getOpCodeOutput(Transaction tx) {
+    private static TransactionOutput getOpCodeOutput(Transaction tx) {
         List<TransactionOutput> outputs = tx.getOutputs();
         for (TransactionOutput o : outputs) {
             if (o.getScriptPubKey().isOpReturn()) {

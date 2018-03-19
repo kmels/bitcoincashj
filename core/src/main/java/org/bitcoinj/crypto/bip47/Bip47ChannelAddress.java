@@ -15,20 +15,13 @@ import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.HDKeyDerivation;
 
 public class Bip47ChannelAddress {
-    private int childNum;
-    private String strPath = null;
-    private ECKey ecKey = null;
-    private byte[] pubKey = null;
-    private byte[] pubKeyHash = null;
-    private NetworkParameters params = null;
+    private ECKey ecKey;
+    private byte[] pubKey;
+    private NetworkParameters params;
 
-    private Bip47ChannelAddress() {
-    }
-
-    public Bip47ChannelAddress(NetworkParameters params, DeterministicKey cKey, int child) {
+    public Bip47ChannelAddress(NetworkParameters params, DeterministicKey cKey, int childNum) {
         this.params = params;
-        this.childNum = child;
-        DeterministicKey dk = HDKeyDerivation.deriveChildKey(cKey, new ChildNumber(this.childNum, false));
+        DeterministicKey dk = HDKeyDerivation.deriveChildKey(cKey, new ChildNumber(childNum, false));
         if(dk.hasPrivKey()) {
             byte[] now = ArrayUtils.addAll(new byte[1], dk.getPrivKeyBytes());
             this.ecKey = ECKey.fromPrivate(new BigInteger(now), true);
@@ -39,31 +32,14 @@ public class Bip47ChannelAddress {
         long now1 = Utils.now().getTime() / 1000L;
         this.ecKey.setCreationTimeSeconds(now1);
         this.pubKey = this.ecKey.getPubKey();
-        this.pubKeyHash = this.ecKey.getPubKeyHash();
-        this.strPath = dk.getPathAsString();
     }
 
     public byte[] getPubKey() {
         return this.pubKey;
     }
 
-    public byte[] getPubKeyHash() {
-        return this.pubKeyHash;
-    }
-
-    public String getAddressString() {
-        return this.ecKey.toAddress(this.params).toString();
-    }
-
-    public String getPrivateKeyString() {
-        return this.ecKey.hasPrivKey()?this.ecKey.getPrivateKeyEncoded(this.params).toString():null;
-    }
-
     public org.bitcoinj.core.Address getAddress() {
         return this.ecKey.toAddress(this.params);
     }
 
-    public String getPath() {
-        return this.strPath;
-    }
 }
