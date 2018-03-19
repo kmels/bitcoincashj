@@ -17,16 +17,25 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * <p>A BIP47PaymentChannel enables a payer (Alice) to obtain different addresses for the recipient (Bob) such that
+ * Bob's incoming addresses are created using a @{link Bip47Account} and are not easily linked to each other.</p>
+ *
+ * <p>When Alice sends a notification transaction to Bob, Bob can use this class to generate addresses to watch for Alice's
+ * inputs.</p>
+ */
 public class Bip47PaymentChannel {
-    private static final String TAG = "Bip47PaymentChannel";
-
     private static final int STATUS_NOT_SENT = -1;
     private static final int STATUS_SENT_CFM = 1;
+    // how many addresses to generate in the wallet
     private static final int LOOKAHEAD = 10;
 
+    // The payment code of the sender of payments
     private String paymentCode;
     private String label = "";
+    // The addresses that the sender will use to pay
     private List<Bip47Address> incomingAddresses = new ArrayList<>();
+    // The addresses that the sender has used
     private List<String> outgoingAddresses = new ArrayList<>();
     private int status = STATUS_NOT_SENT;
     private int currentOutgoingIndex = 0;
@@ -60,6 +69,9 @@ public class Bip47PaymentChannel {
         return currentIncomingIndex;
     }
 
+    /** Imports the 10 next payment addresses to bip47Wallet.
+     * @param bip47Wallet
+     */
     public void generateKeys(Bip47Wallet bip47Wallet) throws NotSecp256k1Exception, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
         for (int i = 0; i < LOOKAHEAD; i++) {
             ECKey key = BIP47Util.getReceiveAddress(bip47Wallet, paymentCode, i).getReceiveECKey();
@@ -111,6 +123,7 @@ public class Bip47PaymentChannel {
         outgoingAddresses.add(address);
     }
 
+    /* Use this method when */
     public void setStatusNotSent() {
         status = STATUS_NOT_SENT;
     }

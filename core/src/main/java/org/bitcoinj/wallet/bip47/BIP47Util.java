@@ -53,11 +53,14 @@ public class BIP47Util {
         return null;
     }
 
-    public static boolean isValidNotificationTransactionOpReturn(TransactionOutput transactionOutput) {
+    /** Returns true if the OP_RETURN op code begins with the byte 0x01 (version 1), */
+    public static boolean isNotificationTransactionV1(TransactionOutput transactionOutput) {
         byte[] data = getOpCodeData(transactionOutput);
         return data != null && HEX.encode(data, 0, 1).equals("01");
     }
 
+    /** Return the data of the first op code. */
+    @Nullable
     private static byte[] getOpCodeData(TransactionOutput opReturnOutput) {
         List<ScriptChunk> chunks = opReturnOutput.getScriptPubKey().getChunks();
         for (ScriptChunk chunk : chunks) {
@@ -68,6 +71,8 @@ public class BIP47Util {
         return null;
     }
 
+    /* Extract the payment code from an incoming notification transaction */
+    @Nullable
     public static PaymentCode getPaymentCodeInNotificationTransaction(byte[] privKeyBytes, Transaction tx) {
         log.debug( "Getting pub key");
         byte[] pubKeyBytes = tx.getInput(0).getScriptSig().getPubKey();
@@ -104,6 +109,7 @@ public class BIP47Util {
         return null;
     }
 
+    /** */
     public static PaymentAddress getReceiveAddress(Bip47Wallet bip47Wallet, String pcode, int idx) throws AddressFormatException, NotSecp256k1Exception {
         ECKey accountKey = bip47Wallet.getAccount(0).keyAt(idx);
         return getPaymentAddress(bip47Wallet.getNetworkParameters(), new PaymentCode(pcode), 0, accountKey);

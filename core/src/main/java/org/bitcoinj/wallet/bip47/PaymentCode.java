@@ -61,10 +61,6 @@ public class PaymentCode {
         this.strPaymentCode = this.makeV1();
     }
 
-    public Bip47ChannelAddress notificationAddress(NetworkParameters networkParameters) throws AddressFormatException {
-        return this.addressAt(networkParameters, 0);
-    }
-
     public Bip47ChannelAddress addressAt(NetworkParameters networkParameters, int idx) throws AddressFormatException {
         DeterministicKey key = createMasterPubKeyFromPaymentCode(this.strPaymentCode);
         return new Bip47ChannelAddress(networkParameters, key, idx);

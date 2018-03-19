@@ -10,7 +10,6 @@ package org.bitcoinj.wallet.bip47;
  */
 
 public class Bip47Address {
-
     private String address;
     private int index = 0;
     private boolean seen = false;

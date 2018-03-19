@@ -524,7 +524,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         }
     }
 
-    /** <p>Persists the .bip47 file with the channels. </p> */
+    /** <p>A listener is added to be invoked when the wallet sees an incoming transaction. </p> */
     public void addOnReceiveTransactionListener(TransactionEventListener transactionEventListener){
         if (this.mCoinsReceivedEventListener != null)
             this.removeCoinsReceivedEventListener(mCoinsReceivedEventListener);
@@ -535,7 +535,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         mCoinsReceivedEventListener = transactionEventListener;
     }
 
-    /** <p>Persists the .bip47 file with the channels. </p> */
+    /** <p>A listener is added to be invoked when the wallet receives blocks and builds confidence on a transaction </p> */
     public void addTransactionConfidenceEventListener(TransactionEventListener transactionEventListener){
         if (this.mTransactionConfidenceListener != null)
             this.removeTransactionConfidenceEventListener(mTransactionConfidenceListener);
@@ -571,6 +571,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         return false;
     }
 
+    /** Find the address that received the transaction (P2PKH or P2PSH output) */
     public Address getAddressOfReceived(Transaction tx) {
         for (final TransactionOutput output : tx.getOutputs()) {
             try {
@@ -586,6 +587,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         return null;
     }
 
+    /* Find the address (in P2PKH or P2PSH output) that does not belong to this wallet. */
     public Address getAddressOfSent(Transaction tx) {
         for (final TransactionOutput output : tx.getOutputs()) {
             try {
@@ -601,9 +603,9 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         return null;
     }
 
+    /** Given a notification transaction, extracts a valid payment code */
     public PaymentCode getPaymentCodeInNotificationTransaction(Transaction tx) {
         byte[] privKeyBytes = mBip47Accounts.get(0).getNotificationKey().getPrivKeyBytes();
-
         return BIP47Util.getPaymentCodeInNotificationTransaction(privKeyBytes, tx);
     }
 
@@ -912,6 +914,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         return false;
     }
 
+    /* Mark a channel's notification transaction as sent*/
     public void putPaymenCodeStatusSent(String paymentCode) {
         if (channels.containsKey(paymentCode)) {
             Bip47PaymentChannel paymentChannel  = channels.get(paymentCode);
@@ -922,6 +925,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         }
     }
 
+    /* Return the next address to send a payment to */
     public String getCurrentOutgoingAddress(Bip47PaymentChannel paymentChannel) {
         try {
             ECKey key = BIP47Util.getSendAddress(this, new PaymentCode(paymentChannel.getPaymentCode()), paymentChannel.getCurrentOutgoingIndex()).getSendECKey();
