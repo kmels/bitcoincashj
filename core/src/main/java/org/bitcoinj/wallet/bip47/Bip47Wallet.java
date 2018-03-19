@@ -645,6 +645,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         return key.toAddress(getNetworkParameters());
     }
 
+    /** Return true if this is the first time the address is seen used*/
     public boolean generateNewBip47IncomingAddress(String address) {
         for (Bip47PaymentChannel paymentChannel  : channels.values()) {
             for (Bip47Address bip47Address : paymentChannel.getIncomingAddresses()) {

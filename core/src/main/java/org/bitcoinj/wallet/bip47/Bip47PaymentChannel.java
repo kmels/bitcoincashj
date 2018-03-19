@@ -74,15 +74,6 @@ public class Bip47PaymentChannel {
         currentIncomingIndex = LOOKAHEAD - 1;
     }
 
-    public Bip47Address getIncomingAddress(String address) {
-        for (Bip47Address bip47Address: incomingAddresses) {
-            if (bip47Address.getAddress().equals(address)) {
-                return bip47Address;
-            }
-        }
-        return null;
-    }
-
     public void addNewIncomingAddress(String newAddress, int nextIndex) {
         incomingAddresses.add(nextIndex, new Bip47Address(newAddress, nextIndex));
         currentIncomingIndex = nextIndex;
