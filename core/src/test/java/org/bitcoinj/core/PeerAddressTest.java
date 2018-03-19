@@ -25,7 +25,7 @@ import java.net.InetAddress;
 import static org.bitcoinj.core.Utils.HEX;
 import static org.junit.Assert.assertEquals;
 
-public class PeerBip47ChannelAddressTest
+public class PeerAddressTest
 {
     @Test
     public void testPeerAddressRoundtrip() throws Exception {

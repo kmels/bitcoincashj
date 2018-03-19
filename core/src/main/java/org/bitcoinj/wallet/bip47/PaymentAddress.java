@@ -96,7 +96,7 @@ public class PaymentAddress {
     }
 
     public ECPoint getECPoint() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException {
-        ECKey ecKey = ECKey.fromPublicOnly(this.paymentCode.addressAt(this.networkParameters, this.index).getPubKey());
+        ECKey ecKey = ECKey.fromPublicOnly(this.paymentCode.derivePubKeyAt(this.networkParameters, this.index));
         return ecKey.getPubKeyPoint();
     }
 
@@ -129,7 +129,7 @@ public class PaymentAddress {
     }
 
     private SecretPoint sharedSecret() throws AddressFormatException, InvalidKeySpecException, InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, NoSuchProviderException {
-        return new SecretPoint(this.privKey, this.paymentCode.addressAt(this.networkParameters, this.index).getPubKey());
+        return new SecretPoint(this.privKey, this.paymentCode.derivePubKeyAt(this.networkParameters, this.index));
     }
 
     private boolean isSecp256k1(BigInteger b) {

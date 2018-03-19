@@ -109,41 +109,20 @@ public class BIP47Util {
         return null;
     }
 
-    /** */
+    /** Derives the address at idx in the wallet's bip47 account */
     public static PaymentAddress getReceiveAddress(Bip47Wallet bip47Wallet, String pcode, int idx) throws AddressFormatException, NotSecp256k1Exception {
         ECKey accountKey = bip47Wallet.getAccount(0).keyAt(idx);
         return getPaymentAddress(bip47Wallet.getNetworkParameters(), new PaymentCode(pcode), 0, accountKey);
     }
 
+    /** Get the address of pcode's owner to send a payment to, using BTC as coin_type */
     public static PaymentAddress getSendAddress(Bip47Wallet bip47Bip47Wallet, PaymentCode pcode, int idx) throws AddressFormatException, NotSecp256k1Exception {
         ECKey key = bip47Bip47Wallet.getAccount(0).keyAt(0);
         return getPaymentAddress(bip47Bip47Wallet.getNetworkParameters(), pcode, idx, key);
     }
 
+    /** Creates a PaymentAddress object that the sender will use to pay, using the hardened key at idx */
     private static PaymentAddress getPaymentAddress(NetworkParameters networkParameters, PaymentCode pcode, int idx, ECKey key) throws AddressFormatException, NotSecp256k1Exception {
         return new PaymentAddress(networkParameters, pcode, idx, key.getPrivKeyBytes());
-    }
-
-    public static String readFromFile(File file) throws IOException {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF8"))) {
-            StringBuilder sb = new StringBuilder();
-
-            String newLine = System.lineSeparator();
-            String str;
-            while ((str = in.readLine()) != null) {
-                sb.append(str).append(newLine);
-            }
-            return sb.toString();
-        }
-    }
-
-    public static void saveToFile(File file, File temp) throws IOException {
-        try (InputStream in = new FileInputStream(temp); OutputStream out = new FileOutputStream(file)) {
-            byte[] buf = new byte[1024];
-            int len;
-            while ((len = in.read(buf)) > 0) {
-                out.write(buf, 0, len);
-            }
-        }
     }
 }
