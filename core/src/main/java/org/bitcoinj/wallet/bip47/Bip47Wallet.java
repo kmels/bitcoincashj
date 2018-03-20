@@ -149,7 +149,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         this.restoreFromSeed = deterministicSeed;
 
         // point to the file with the serialized Wallet
-        File walletFile = new File(directory, coinName + ".wallet");
+        this.walletFile = new File(directory, coinName + ".wallet");
         // if there is a serialized Wallet and an initiated chain file,
         boolean chainFileExists = getChainFile().exists();
 
@@ -340,7 +340,7 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         log.debug("Created wallet: " +toString());
     }
 
-    public Bip47Wallet(NetworkParameters params, KeyChainGroup kcg){
+    private Bip47Wallet(NetworkParameters params, KeyChainGroup kcg){
         super(params, kcg);
     }
 
