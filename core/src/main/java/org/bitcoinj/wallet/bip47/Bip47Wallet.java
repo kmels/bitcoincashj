@@ -949,4 +949,10 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
     public BlockStore getBlockStore(){
         return vStore;
     }
+
+    public void closeBlockStore() throws BlockStoreException {
+        if (vStore != null) {
+            vStore.close();
+        }
+    }
 }
