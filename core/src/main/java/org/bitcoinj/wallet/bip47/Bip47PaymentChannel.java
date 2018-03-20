@@ -5,8 +5,6 @@
 
 package org.bitcoinj.wallet.bip47;
 
-import org.bitcoinj.wallet.bip47.Wallet;
-
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.ECKey;
 import org.slf4j.Logger;
@@ -19,30 +17,38 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Bip47Meta {
-    private static final String TAG = "Bip47Meta";
-
+/**
+ * <p>A BIP47PaymentChannel enables a payer (Alice) to obtain different addresses for the recipient (Bob) such that
+ * Bob's incoming addresses are created using a @{link Bip47Account} and are not easily linked to each other.</p>
+ *
+ * <p>When Alice sends a notification transaction to Bob, Bob can use this class to generate addresses to watch for Alice's
+ * inputs.</p>
+ */
+public class Bip47PaymentChannel {
     private static final int STATUS_NOT_SENT = -1;
     private static final int STATUS_SENT_CFM = 1;
-
+    // how many addresses to generate in the wallet
     private static final int LOOKAHEAD = 10;
 
+    // The payment code of the sender of payments
     private String paymentCode;
     private String label = "";
+    // The addresses that the sender will use to pay
     private List<Bip47Address> incomingAddresses = new ArrayList<>();
+    // The addresses that the sender has used
     private List<String> outgoingAddresses = new ArrayList<>();
     private int status = STATUS_NOT_SENT;
     private int currentOutgoingIndex = 0;
     private int currentIncomingIndex = -1;
 
-    private static final Logger log = LoggerFactory.getLogger(Bip47Meta.class);
-    public Bip47Meta() {}
+    private static final Logger log = LoggerFactory.getLogger(Bip47PaymentChannel.class);
+    public Bip47PaymentChannel() {}
 
-    public Bip47Meta(String paymentCode) {
+    public Bip47PaymentChannel(String paymentCode) {
         this.paymentCode = paymentCode;
     }
 
-    public Bip47Meta(String paymentCode, String label) {
+    public Bip47PaymentChannel(String paymentCode, String label) {
         this(paymentCode);
         this.label = label;
     }
@@ -63,27 +69,21 @@ public class Bip47Meta {
         return currentIncomingIndex;
     }
 
-    public void generateKeys(Wallet wallet) throws NotSecp256k1Exception, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+    /** Imports the 10 next payment addresses to bip47Wallet.
+     * @param bip47Wallet
+     */
+    public void generateKeys(Bip47Wallet bip47Wallet) throws NotSecp256k1Exception, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
         for (int i = 0; i < LOOKAHEAD; i++) {
-            ECKey key = BIP47Util.getReceiveAddress(wallet, paymentCode, i).getReceiveECKey();
-            Address address = wallet.getAddressOfKey(key);
+            ECKey key = BIP47Util.getReceiveAddress(bip47Wallet, paymentCode, i).getReceiveECKey();
+            Address address = bip47Wallet.getAddressOfKey(key);
 
             log.debug("New address generated");
             log.debug(address.toString());
-            wallet.importKey(key);
+            bip47Wallet.importKey(key);
             incomingAddresses.add(i, new Bip47Address(address.toString(), i));
         }
 
         currentIncomingIndex = LOOKAHEAD - 1;
-    }
-
-    public Bip47Address getIncomingAddress(String address) {
-        for (Bip47Address bip47Address: incomingAddresses) {
-            if (bip47Address.getAddress().equals(address)) {
-                return bip47Address;
-            }
-        }
-        return null;
     }
 
     public void addNewIncomingAddress(String newAddress, int nextIndex) {
@@ -123,6 +123,7 @@ public class Bip47Meta {
         outgoingAddresses.add(address);
     }
 
+    /* Use this method when */
     public void setStatusNotSent() {
         status = STATUS_NOT_SENT;
     }

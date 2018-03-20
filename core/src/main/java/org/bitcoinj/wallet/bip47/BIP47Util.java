@@ -5,8 +5,6 @@
 
 package org.bitcoinj.wallet.bip47;
 
-import org.bitcoinj.wallet.bip47.Wallet;
-
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
@@ -21,7 +19,6 @@ import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,8 +39,11 @@ import static org.bitcoinj.core.Utils.HEX;
 public class BIP47Util {
     private static final Logger log = LoggerFactory.getLogger(BIP47Util.class);
 
+    /**
+     * Finds the first output in a transaction whose op code is OP_RETURN.
+     */
     @Nullable
-    public static TransactionOutput getOpCodeOutput(Transaction tx) {
+    private static TransactionOutput getOpCodeOutput(Transaction tx) {
         List<TransactionOutput> outputs = tx.getOutputs();
         for (TransactionOutput o : outputs) {
             if (o.getScriptPubKey().isOpReturn()) {
@@ -53,11 +53,14 @@ public class BIP47Util {
         return null;
     }
 
-    public static boolean isValidNotificationTransactionOpReturn(TransactionOutput transactionOutput) {
+    /** Returns true if the OP_RETURN op code begins with the byte 0x01 (version 1), */
+    public static boolean isNotificationTransactionV1(TransactionOutput transactionOutput) {
         byte[] data = getOpCodeData(transactionOutput);
         return data != null && HEX.encode(data, 0, 1).equals("01");
     }
 
+    /** Return the data of the first op code. */
+    @Nullable
     private static byte[] getOpCodeData(TransactionOutput opReturnOutput) {
         List<ScriptChunk> chunks = opReturnOutput.getScriptPubKey().getChunks();
         for (ScriptChunk chunk : chunks) {
@@ -68,6 +71,8 @@ public class BIP47Util {
         return null;
     }
 
+    /* Extract the payment code from an incoming notification transaction */
+    @Nullable
     public static PaymentCode getPaymentCodeInNotificationTransaction(byte[] privKeyBytes, Transaction tx) {
         log.debug( "Getting pub key");
         byte[] pubKeyBytes = tx.getInput(0).getScriptSig().getPubKey();
@@ -104,40 +109,20 @@ public class BIP47Util {
         return null;
     }
 
-    public static PaymentAddress getReceiveAddress(Wallet wallet, String pcode, int idx) throws AddressFormatException, NotSecp256k1Exception {
-        ECKey accountKey = wallet.getAccount(0).keyAt(idx);
-        return getPaymentAddress(wallet.getNetworkParameters(), new PaymentCode(pcode), 0, accountKey);
+    /** Derives the address at idx in the wallet's bip47 account */
+    public static PaymentAddress getReceiveAddress(Bip47Wallet bip47Wallet, String pcode, int idx) throws AddressFormatException, NotSecp256k1Exception {
+        ECKey accountKey = bip47Wallet.getAccount(0).keyAt(idx);
+        return getPaymentAddress(bip47Wallet.getNetworkParameters(), new PaymentCode(pcode), 0, accountKey);
     }
 
-    public static PaymentAddress getSendAddress(Wallet bip47Wallet, PaymentCode pcode, int idx) throws AddressFormatException, NotSecp256k1Exception {
-        ECKey key = bip47Wallet.getAccount(0).keyAt(0);
-        return getPaymentAddress(bip47Wallet.getNetworkParameters(), pcode, idx, key);
+    /** Get the address of pcode's owner to send a payment to, using BTC as coin_type */
+    public static PaymentAddress getSendAddress(Bip47Wallet bip47Bip47Wallet, PaymentCode pcode, int idx) throws AddressFormatException, NotSecp256k1Exception {
+        ECKey key = bip47Bip47Wallet.getAccount(0).keyAt(0);
+        return getPaymentAddress(bip47Bip47Wallet.getNetworkParameters(), pcode, idx, key);
     }
 
+    /** Creates a PaymentAddress object that the sender will use to pay, using the hardened key at idx */
     private static PaymentAddress getPaymentAddress(NetworkParameters networkParameters, PaymentCode pcode, int idx, ECKey key) throws AddressFormatException, NotSecp256k1Exception {
         return new PaymentAddress(networkParameters, pcode, idx, key.getPrivKeyBytes());
-    }
-
-    public static String readFromFile(File file) throws IOException {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF8"))) {
-            StringBuilder sb = new StringBuilder();
-
-            String newLine = System.lineSeparator();
-            String str;
-            while ((str = in.readLine()) != null) {
-                sb.append(str).append(newLine);
-            }
-            return sb.toString();
-        }
-    }
-
-    public static void saveToFile(File file, File temp) throws IOException {
-        try (InputStream in = new FileInputStream(temp); OutputStream out = new FileOutputStream(file)) {
-            byte[] buf = new byte[1024];
-            int len;
-            while ((len = in.read(buf)) > 0) {
-                out.write(buf, 0, len);
-            }
-        }
     }
 }

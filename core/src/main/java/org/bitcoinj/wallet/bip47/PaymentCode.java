@@ -5,7 +5,11 @@
 
 package org.bitcoinj.wallet.bip47;
 
-import org.bitcoinj.crypto.bip47.Address;
+import org.apache.commons.lang3.ArrayUtils;
+import org.bitcoinj.core.*;
+import org.bitcoinj.crypto.ChildNumber;
+
+import java.math.BigInteger;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
@@ -14,10 +18,6 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.tuple.Pair;
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.Base58;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.HDKeyDerivation;
 
@@ -61,13 +61,23 @@ public class PaymentCode {
         this.strPaymentCode = this.makeV1();
     }
 
-    public Address notificationAddress(NetworkParameters networkParameters) throws AddressFormatException {
-        return this.addressAt(networkParameters, 0);
-    }
-
-    public Address addressAt(NetworkParameters networkParameters, int idx) throws AddressFormatException {
+    /** Returns the pubkey on the ith derivation path */
+    public byte[] derivePubKeyAt(NetworkParameters networkParameters, int i) throws AddressFormatException {
         DeterministicKey key = createMasterPubKeyFromPaymentCode(this.strPaymentCode);
-        return new Address(networkParameters, key, idx);
+        DeterministicKey dk = HDKeyDerivation.deriveChildKey(key, new ChildNumber(i, false));
+
+        ECKey ecKey;
+        if(dk.hasPrivKey()) {
+            byte[] now = ArrayUtils.addAll(new byte[1], dk.getPrivKeyBytes());
+            ecKey = ECKey.fromPrivate(new BigInteger(now), true);
+        } else {
+            ecKey = ECKey.fromPublicOnly(dk.getPubKey());
+        }
+
+        long now1 = Utils.now().getTime() / 1000L;
+        ecKey.setCreationTimeSeconds(now1);
+
+        return ecKey.getPubKey();
     }
 
     public byte[] getPayload() throws AddressFormatException {
