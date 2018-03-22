@@ -178,10 +178,6 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
         this.keyChainGroup = new KeyChainGroup(params, walletSeed);
 
         String seedb = HEX.encode(coreWallet.getKeyChainSeed().getSeedBytes());
-        // every 5 seconds let's persist the transactions, keys, last block height, watched scripts, etc.
-        // does not persist channels recurrently, instead payment channels are currently saved in a separete file (.bip47 extension).
-        autosaveToFile(walletFile, 5, TimeUnit.SECONDS, null);
-
         // add to this wallet all the core Wallet's properties. This code should be removed after channels are implemented as WalletExtension.
         //   - watched scripts
         addWatchedScripts(coreWallet.getWatchedScripts());
@@ -337,6 +333,11 @@ public class Bip47Wallet extends org.bitcoinj.wallet.Wallet {
                 return;
             }
         });
+
+        // every 5 seconds let's persist the transactions, keys, last block height, watched scripts, etc.
+        // does not persist channels recurrently, instead payment channels are currently saved in a separete file (.bip47 extension).
+        autosaveToFile(walletFile, 5, TimeUnit.SECONDS, null);
+
         log.debug("Created wallet: " +toString());
     }
 
