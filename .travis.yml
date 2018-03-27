@@ -1,7 +1,7 @@
 # configuration for https://travis-ci.org/bitcoinj/bitcoinj
 sudo: false
 language: java
-jdk: oraclejdk8
+jdk: openjdk8
 install: true # remove default
 script:
   - mvn -q clean install -Pno-network
