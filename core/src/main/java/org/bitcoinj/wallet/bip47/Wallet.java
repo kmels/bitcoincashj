@@ -178,7 +178,7 @@ public class Wallet {
 
         if (torSocksPort>0) {
             System.setProperty("socksProxyHost", "127.0.0.1");
-            System.setProperty("socksProxyPort", "9050");
+            System.setProperty("socksProxyPort", ((Integer)torSocksPort).toString());
         }
 
         Context.propagate(new Context(blockchain.getNetworkParameters()));
