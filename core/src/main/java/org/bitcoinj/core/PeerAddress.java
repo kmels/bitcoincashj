@@ -151,7 +151,12 @@ public class PeerAddress extends ChildMessage {
     }
 
     public static PeerAddress localhost(NetworkParameters params) {
-        return new PeerAddress(params, InetAddresses.forString("127.0.0.1"), params.getPort());
+        if (params.getUriScheme().contains("cash") || params.getUriScheme().contains("bch"))
+            return new PeerAddress(params, InetAddresses.forString("192.168.0.33"), params.getPort()+1);
+        else
+            return new PeerAddress(params, InetAddresses.forString("192.168.0.33"), params.getPort());
+
+        //return new PeerAddress(params, InetAddresses.forString("192.168.0.33"), params.getPort());
     }
 
     @Override
