@@ -18,6 +18,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,7 +69,7 @@ public class BIP47Channel {
         return currentIncomingIndex;
     }
 
-    public void generateKeys(BIP47AppKit wallet) throws NotSecp256k1Exception, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+    public void generateKeys(BIP47AppKit wallet) throws NotSecp256k1Exception, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, InvalidParameterSpecException {
         for (int i = 0; i < LOOKAHEAD; i++) {
             ECKey key = getReceiveAddress(wallet, paymentCode, i).getReceiveECKey();
             Address address = wallet.getAddressOfKey(key);

@@ -28,6 +28,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -284,6 +285,8 @@ public class BIP47Util {
                     e.printStackTrace();
                 } catch (InvalidKeySpecException e) {
                     e.printStackTrace();
+                } catch (InvalidParameterSpecException e) {
+                    e.printStackTrace();
                 }
                 log.debug("My payment code: "+ myBIP47PaymentCode.toString());
                 log.debug("Mask: "+Utils.HEX.encode(mask));
@@ -393,6 +396,8 @@ public class BIP47Util {
             return BIP47PaymentCode;
 
         } catch (InvalidKeySpecException | InvalidKeyException | NoSuchProviderException | NoSuchAlgorithmException | NoSuchFieldError e) {
+            e.printStackTrace();
+        } catch (InvalidParameterSpecException e) {
             e.printStackTrace();
         }
         return null;

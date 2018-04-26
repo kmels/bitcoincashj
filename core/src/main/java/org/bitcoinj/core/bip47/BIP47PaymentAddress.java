@@ -11,7 +11,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
-import org.bitcoinj.core.AddressFormatException;
+import java.security.spec.InvalidParameterSpecException;
+
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.crypto.BIP47SecretPoint;
@@ -52,7 +53,7 @@ public class BIP47PaymentAddress {
     }
 
     /** Creates a BIP47PaymentAddress object that the sender will use to pay, using the hardened key at idx */
-    public BIP47PaymentAddress(NetworkParameters networkParameters, BIP47PaymentCode BIP47PaymentCode, int index, byte[] privKey) throws AddressFormatException {
+    public BIP47PaymentAddress(NetworkParameters networkParameters, BIP47PaymentCode BIP47PaymentCode, int index, byte[] privKey) {
         this.BIP47PaymentCode = BIP47PaymentCode;
         this.index = index;
         this.privKey = privKey;
@@ -60,36 +61,27 @@ public class BIP47PaymentAddress {
     }
 
     /** Creates a HD key to send a deposit */
-    public ECKey getSendECKey() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException, NotSecp256k1Exception {
+    public ECKey getSendECKey() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException, NotSecp256k1Exception, InvalidParameterSpecException {
         return this.getSendECKey(this.secretPoint());
     }
 
     /** Derives a deposit address to watch to receive payments from BIP47PaymentCode's owner*/
-    public ECKey getReceiveECKey() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException, NotSecp256k1Exception {
+    public ECKey getReceiveECKey() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException, NotSecp256k1Exception, InvalidParameterSpecException {
         return this.getReceiveECKey(this.secretPoint());
     }
 
-    /* Use the generator "G" by */
-    //public ECPoint get_sG() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException, NotSecp256k1Exception {
-    //    return CURVE_PARAMS.getG().multiply(this.getSecretPoint());
-    //}
-
     /* Accesor for the secret point between sender and receiver */
-    public BIP47SecretPoint getSharedSecret() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException {
+    public BIP47SecretPoint getSharedSecret() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException, InvalidParameterSpecException {
         return this.sharedSecret();
     }
 
-    //public BigInteger getSecretPoint() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException, NotSecp256k1Exception {
-    //    return this.secretPoint();
-    //}
-
-    public ECPoint getECPoint() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException {
+    public ECPoint getECPoint() {
         ECKey ecKey = ECKey.fromPublicOnly(this.BIP47PaymentCode.derivePubKeyAt(this.networkParameters, this.index));
         return ecKey.getPubKeyPoint();
     }
 
     /** Returns the scalar shared secret */
-    public byte[] hashSharedSecret() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException {
+    public byte[] hashSharedSecret() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IllegalStateException, InvalidKeySpecException, InvalidParameterSpecException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(this.getSharedSecret().ECDHSecretAsBytes());
         return hash;
@@ -122,7 +114,7 @@ public class BIP47PaymentAddress {
     }
 
     /* Return the ECDH shared secret between us and the owner of BIP47PaymentCode */
-    private BIP47SecretPoint sharedSecret() throws AddressFormatException, InvalidKeySpecException, InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, NoSuchProviderException {
+    private BIP47SecretPoint sharedSecret() throws InvalidKeySpecException, InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, NoSuchProviderException, InvalidParameterSpecException {
         byte[] pubKey = this.BIP47PaymentCode.derivePubKeyAt(this.networkParameters, this.index);
         return new BIP47SecretPoint(this.privKey, pubKey);
     }
@@ -133,7 +125,7 @@ public class BIP47PaymentAddress {
     }
 
     /** Returns a SHA256 mask of the secret point */
-    private BigInteger secretPoint() throws AddressFormatException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, NotSecp256k1Exception {
+    private BigInteger secretPoint() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, NotSecp256k1Exception, InvalidParameterSpecException {
         BigInteger s = new BigInteger(1, this.hashSharedSecret());
         if(!this.isSecp256k1(s)) {
             throw new NotSecp256k1Exception("secret point not on Secp256k1 curve");

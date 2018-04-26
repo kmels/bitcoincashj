@@ -23,10 +23,6 @@ import static org.bitcoinj.core.Utils.HEX;
 import static org.bitcoinj.core.Utils.SPACE_JOINER;
 import static org.bitcoinj.core.Utils.WHITESPACE_SPLITTER;
 import static org.junit.Assert.*;
-
-import org.bitcoinj.crypto.MnemonicCodeTest;
-import org.spongycastle.jce.provider.BouncyCastleProvider;
-
 public class BIP47AppKitTest extends TestWithBIP47AppKit {
     private static final Logger log = LoggerFactory.getLogger(org.bitcoinj.wallet.WalletTest.class);
 
@@ -67,11 +63,6 @@ public class BIP47AppKitTest extends TestWithBIP47AppKit {
             + "c50010002063e4eb95e62791b06c50e1a3a942e1ecaaa9afbbeb324d16ae6821e091611fa96c0cf048f607fe51a0327f5e252897931"
             + "1c78cb2de0d682c61e1180fc3d543b0000000000000000000000000000000000";
 
-    static {
-        // Adds a new provider, at a specified position
-        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 2);
-        Security.addProvider(new BouncyCastleProvider());
-    }
     private BIP47AppKit createWallet(String coinName, NetworkParameters params, File workingDir, String mnemonic) throws Exception {
         DeterministicSeed seed = null;
         if (mnemonic != null)
@@ -156,6 +147,7 @@ public class BIP47AppKitTest extends TestWithBIP47AppKit {
     public void notificationTransactionTest() throws Exception {
         super.setUp();
         // folders for alice and bob wallets
+        Security.addProvider(new org.spongycastle.jce.provider.BouncyCastleProvider());
 
         deleteFolder("alice2");deleteFolder("bob2");
         File aliceDir = new File("alice2");

@@ -46,6 +46,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -593,6 +594,8 @@ public class BIP47AppKit {
                 } catch (NotSecp256k1Exception | InvalidKeyException | InvalidKeySpecException | NoSuchAlgorithmException | NoSuchProviderException e) {
                     e.printStackTrace();
                     return false;
+                } catch (InvalidParameterSpecException e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -854,6 +857,8 @@ public class BIP47AppKit {
                 mask = BIP47PaymentCode.getMask(BIP47SecretPoint.ECDHSecretAsBytes(), outpoint);
             } catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException | NoSuchProviderException e) {
                 e.printStackTrace();
+            } catch (InvalidParameterSpecException e) {
+                e.printStackTrace();
             }
             log.debug("My payment code: "+mAccounts.get(0).getPaymentCode().toString());
             log.debug("Mask: "+Utils.HEX.encode(mask));
@@ -925,6 +930,8 @@ public class BIP47AppKit {
             ECKey key = getSendAddress(this, new BIP47PaymentCode(BIP47Channel.getPaymentCode()), BIP47Channel.getCurrentOutgoingIndex()).getSendECKey();
             return LegacyAddress.fromKey(params, key).toString();
         } catch (InvalidKeyException | InvalidKeySpecException | NotSecp256k1Exception | NoSuchProviderException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidParameterSpecException e) {
             e.printStackTrace();
         }
         return null;
