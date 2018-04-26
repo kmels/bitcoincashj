@@ -4,6 +4,9 @@ dist: trusty
 language: java
 jdk: openjdk8
 install: true # remove default
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -qq openjfx
 script:
   - mvn -q clean install -Pno-network
   - jdk_switcher use openjdk7
