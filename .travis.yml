@@ -1,6 +1,6 @@
 # configuration for https://travis-ci.org/bitcoinj/bitcoinj
 sudo: false
-dist: trusty
+dist: xenial
 language: java
 jdk: openjdk8
 install: true # remove default
