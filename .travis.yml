@@ -5,6 +5,8 @@ language: java
 jdk: openjdk8
 install: true # remove default
 before_install:
+  - sudo add-apt-repository ppa:openjdk-r/ppa
+  - sudo apt-get update -qq > /dev/null
   - sudo apt-get build-dep libopenjfx-java
   - sudo apt-get --compile source libopenjfx-java
   - sudo dpkg -i libopenjfx-jni_8u60-b27-4~trusty1_amd64.deb
