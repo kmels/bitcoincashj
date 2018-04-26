@@ -1,12 +1,16 @@
 # configuration for https://travis-ci.org/bitcoinj/bitcoinj
 sudo: false
-dist: xenial
+dist: trusty
 language: java
 jdk: openjdk8
 install: true # remove default
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -qq openjfx
+  - sudo apt-get build-dep libopenjfx-java
+  - sudo apt-get --compile source libopenjfx-java
+  - sudo dpkg -i libopenjfx-jni_8u60-b27-4~trusty1_amd64.deb
+  - sudo dpkg -i libopenjfx-java_8u60-b27-4~trusty1_all.deb
+  - sudo dpkg -i libopenjfx-java-doc_8u60-b27-4~trusty1_all.deb
+  - sudo dpkg -i openjfx_8u60-b27-4~trusty1_amd64.deb
 script:
   - mvn -q clean install -Pno-network
   - jdk_switcher use openjdk7
