@@ -1,19 +1,16 @@
 # configuration for https://travis-ci.org/bitcoinj/bitcoinj
-sudo: false
+sudo: true
 dist: trusty
 language: java
 jdk: openjdk8
 install: true # remove default
 before_install:
-  - sudo add-apt-repository ppa:openjdk-r/ppa -y
-  - sudo add-apt-repository ppa:webupd8team/java -y
-  - sudo apt-get update
-  - sudo cd ~ && sudo wget https://oss.sonatype.org/content/repositories/releases/org/javafxports/dalvik-sdk/8.60.9/dalvik-sdk-8.60.9.zip && sudo unzip dalvik-sdk-8.60.9.zip
-  - sudo cp ~/dalvik-sdk/rt/lib/ext/jfxrt.jar $JAVA_HOME/jre/lib/ext
-  - sudo cp ~/dalvik-sdk/rt/lib/jfxswt.jar $JAVA_HOME/jre/lib/
-  - sudo cp ~/dalvik-sdk/rt/lib/javafx.properties $JAVA_HOME/jre/lib
-  - sudo cp ~/dalvik-sdk/rt/lib/javafx.platform.properties $JAVA_HOME/jre/lib
-  - sudo cp ~/dalvik-sdk/lib/javafx-mx.jar $JAVA_HOME/lib
+  - cd ~ && wget https://oss.sonatype.org/content/repositories/releases/org/javafxports/dalvik-sdk/8.60.9/dalvik-sdk-8.60.9.zip && unzip dalvik-sdk-8.60.9.zip
+  - cp ~/dalvik-sdk/rt/lib/ext/jfxrt.jar $JAVA_HOME/jre/lib/ext
+  - cp ~/dalvik-sdk/rt/lib/jfxswt.jar $JAVA_HOME/jre/lib/
+  - cp ~/dalvik-sdk/rt/lib/javafx.properties $JAVA_HOME/jre/lib
+  - cp ~/dalvik-sdk/rt/lib/javafx.platform.properties $JAVA_HOME/jre/lib
+  - cp ~/dalvik-sdk/lib/javafx-mx.jar $JAVA_HOME/lib
 script:
   - mvn -q clean install -Pno-network
   - jdk_switcher use openjdk8
