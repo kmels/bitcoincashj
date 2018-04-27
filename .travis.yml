@@ -2,16 +2,21 @@
 sudo: false
 dist: trusty
 language: java
-jdk: openjdk9
+jdk: openjdk8
 install: true # remove default
 before_install:
   - sudo add-apt-repository ppa:openjdk-r/ppa -y
   - sudo add-apt-repository ppa:webupd8team/java -y
   - sudo apt-get update
-  - sudo apt-get install openjfx
+  - cd ~ && wget https://oss.sonatype.org/content/repositories/releases/org/javafxports/dalvik-sdk/8.60.9/dalvik-sdk-8.60.9.zip && unzip dalvik-sdk-8.60.9.zip
+  - cp ~/dalvik-sdk/rt/lib/ext/jfxrt.jar $JAVA_HOME/jre/lib/ext
+  - cp ~/dalvik-sdk/rt/lib/jfxswt.jar $JAVA_HOME/jre/lib/
+  - cp ~/dalvik-sdk/rt/lib/javafx.properties $JAVA_HOME/jre/lib
+  - cp ~/dalvik-sdk/rt/lib/javafx.platform.properties $JAVA_HOME/jre/lib
+  - cp ~/dalvik-sdk/lib/javafx-mx.jar $JAVA_HOME/lib
 script:
   - mvn -q clean install -Pno-network
-  - jdk_switcher use openjdk7
+  - jdk_switcher use openjdk8
   - cd core
   - mvn -q clean package -Pno-network
 
@@ -19,7 +24,3 @@ after_success:
   - cd ../core
   - mvn jacoco:report coveralls:report
 
-notifications:
-  irc:
-    channels: "irc.freenode.net#bitcoinj"
-    skip_join: true
