@@ -2,7 +2,7 @@
 sudo: false
 dist: trusty
 language: java
-jdk: openjdk8
+jdk: openjdk9
 install: true # remove default
 before_install:
   - sudo add-apt-repository ppa:openjdk-r/ppa -y
