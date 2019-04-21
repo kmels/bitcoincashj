@@ -64,6 +64,10 @@ public class BCCTestNet3Params extends AbstractBitcoinCashParams {
         checkState(genesisHash.equals("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
         alertSigningKey = Utils.HEX.decode("04302390343f91cc401d56d68b123028bf52e5fca1939df127f63c6467cdf9c8e2c14b61104cf817d0b780da337893ecc4aaff1309e536162dabbdb45200ca2b0a");
 
+        checkpoints.put(546, Sha256Hash.wrap("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70"));
+        checkpoints.put(1155875, Sha256Hash.wrap("00000000f17c850672894b9a75b63a1e72830bbd5f4c8889b5c1a80e7faef138"));
+        checkpoints.put(1188697, Sha256Hash.wrap("0000000000170ed0918077bde7b4d36cc4c91be69fa09211f748240dabe047fb"));
+
         dnsSeeds = new String[] {
                 "testnet-seed.bitcoinabc.org",
                 "testnet-seeder.criptolayer.net",
