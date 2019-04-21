@@ -244,9 +244,7 @@ public class CashAddress {
     private static boolean validChecksum(String prefix, int[] payload) {
         int[] prefixData = prefixToArray(prefix);
         int[] data = concatenate(prefixData, payload);
-        System.out.println("data = " + Arrays.toString(data));
         BigInteger polymod = polymod(data);
-        System.out.println("polymod = " + polymod);
         return polymod.compareTo(BigInteger.ZERO) == 0;
     }
 
@@ -295,7 +293,6 @@ public class CashAddress {
         BigInteger polymodResult = polymod(checksumData);
         int[] polymodArray = checksumToArray(polymodResult);
         int[] payload = concatenate(payloadData, polymodArray);
-        System.out.println("payload = " + Arrays.toString(payload));
         String encodedPayload = encodeBase32(payload);
         return prefix+":"+encodedPayload;
     }
@@ -333,10 +330,7 @@ public class CashAddress {
         int[] data = Arrays.copyOfRange(payload, 0, payload.length - 8);
         int[] result = convertBits(data, 5, 8, true);
         int versionByte = result[0];
-        System.out.println("versionByte = " + versionByte);
         int[] hash = Arrays.copyOfRange(result, 1, result.length);
-
-        System.out.println("hash = " + Arrays.toString(hash));
 
         if (getHashSize(versionByte) != hash.length * 8) {
             throw new AddressFormatException("Invalid hash size: "+bchAddress);
@@ -357,10 +351,8 @@ public class CashAddress {
     public static void main(String[] args) {
         try {
             Address address1 = LegacyAddress.fromBase58(BCCMainNetParams.get(), "1F18bHRRkTFKrbjDbjY7EwaXesGLQ261n5");
-            System.out.println("address1.toCashAddress() = " + address1.toCashAddress());
 
             Address address2 = CashAddress.decode("bitcoincash:qzvesxgz06gwpg2qg4zhqj2vu2yh9v8dcue88wnxm7");
-            System.out.println(address2.toCashAddress());
         } catch (Exception e) {
             e.printStackTrace();
         }
