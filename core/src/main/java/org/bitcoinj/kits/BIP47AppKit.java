@@ -149,6 +149,7 @@ public class BIP47AppKit {
         Context.propagate(new Context(params));
         vWallet = createOrLoadWallet(shouldReplayWallet);
         setAccount();
+        loadBip47MetaData();
 
         Address notificationAddress = mAccounts.get(0).getNotificationAddress();
         log.debug("BIP47AppKit notification address: "+notificationAddress.toString());
