@@ -32,7 +32,7 @@ import static com.google.common.base.Preconditions.checkState;
  * Parameters for the testnet, a separate public instance of Bitcoin that has relaxed rules suitable for development
  * and testing of applications and new Bitcoin versions.
  */
-public class BCCTestNet3Params extends AbstractBitcoinCashParams {
+public class BSVScalingTestNetParams extends AbstractBitcoinCashParams {
     public static final int TESTNET_MAJORITY_WINDOW = 100;
     public static final int TESTNET_MAJORITY_REJECT_BLOCK_OUTDATED = 75;
     public static final int TESTNET_MAJORITY_ENFORCE_BLOCK_UPGRADE = 51;
@@ -40,9 +40,9 @@ public class BCCTestNet3Params extends AbstractBitcoinCashParams {
     /**
      * Scheme part for Bitcoin Cash TestNet URIs.
      */
-    public static final String BITCOIN_CASH_TESTNET_SCHEME = "bchtest";
+    public static final String BITCOIN_CASH_TESTNET_SCHEME = "bsvstn";
 
-    public BCCTestNet3Params() {
+    public BSVScalingTestNetParams() {
         super();
         id = ID_TESTNET;
         // Genesis hash is 000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943
@@ -64,15 +64,11 @@ public class BCCTestNet3Params extends AbstractBitcoinCashParams {
         checkState(genesisHash.equals("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
         alertSigningKey = Utils.HEX.decode("04302390343f91cc401d56d68b123028bf52e5fca1939df127f63c6467cdf9c8e2c14b61104cf817d0b780da337893ecc4aaff1309e536162dabbdb45200ca2b0a");
 
-        checkpoints.put(546, Sha256Hash.wrap("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70"));
-        checkpoints.put(1155875, Sha256Hash.wrap("00000000f17c850672894b9a75b63a1e72830bbd5f4c8889b5c1a80e7faef138"));
-        checkpoints.put(1188697, Sha256Hash.wrap("0000000000170ed0918077bde7b4d36cc4c91be69fa09211f748240dabe047fb"));
+        checkpoints.put(1, Sha256Hash.wrap("000000008908135d180edfe727f4e5dfaea25ed8d72337358d8362df7609b974"));
+        checkpoints.put(2301, Sha256Hash.wrap("00000000ff0ccf61bb239deb3998bd1a9c71d14c212c3fd58b32aae5ab6eaefb"));
 
         dnsSeeds = new String[] {
-                "testnet-seed.bitcoinabc.org",
-                "testnet-seeder.criptolayer.net",
-                "testnet-seed.deadalnix.me",
-                "testnet-seed.bitprim.org"
+                "stn-seed.bitcoinsv.io"
         };
         addrSeeds = null;
         bip32HeaderPub = 0x043587CF;
@@ -85,9 +81,9 @@ public class BCCTestNet3Params extends AbstractBitcoinCashParams {
         // Aug, 1 hard fork
         uahfHeight = 1155876;
 
-	// Nov, 13 hard fork
+        // Nov, 13 hard fork
         daaUpdateHeight = 1188697;
-        cashAddrPrefix = "bchtest";
+        cashAddrPrefix = "bsvstn";
     }
 
     private static BCCTestNet3Params instance;

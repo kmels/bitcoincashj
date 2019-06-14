@@ -18,13 +18,9 @@
 
 package org.bitcoinj.params;
 
-import java.math.BigInteger;
-import java.util.Date;
-
-import com.google.common.base.Preconditions;
 import org.bitcoinj.core.*;
-import org.bitcoinj.store.BlockStore;
-import org.bitcoinj.store.BlockStoreException;
+
+import java.util.Date;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -32,7 +28,7 @@ import static com.google.common.base.Preconditions.checkState;
  * Parameters for the testnet, a separate public instance of Bitcoin that has relaxed rules suitable for development
  * and testing of applications and new Bitcoin versions.
  */
-public class BCCTestNet3Params extends AbstractBitcoinCashParams {
+public class BSVTestNet3Params extends AbstractBitcoinCashParams {
     public static final int TESTNET_MAJORITY_WINDOW = 100;
     public static final int TESTNET_MAJORITY_REJECT_BLOCK_OUTDATED = 75;
     public static final int TESTNET_MAJORITY_ENFORCE_BLOCK_UPGRADE = 51;
@@ -42,7 +38,7 @@ public class BCCTestNet3Params extends AbstractBitcoinCashParams {
      */
     public static final String BITCOIN_CASH_TESTNET_SCHEME = "bchtest";
 
-    public BCCTestNet3Params() {
+    public BSVTestNet3Params() {
         super();
         id = ID_TESTNET;
         // Genesis hash is 000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943
@@ -69,10 +65,8 @@ public class BCCTestNet3Params extends AbstractBitcoinCashParams {
         checkpoints.put(1188697, Sha256Hash.wrap("0000000000170ed0918077bde7b4d36cc4c91be69fa09211f748240dabe047fb"));
 
         dnsSeeds = new String[] {
-                "testnet-seed.bitcoinabc.org",
-                "testnet-seeder.criptolayer.net",
-                "testnet-seed.deadalnix.me",
-                "testnet-seed.bitprim.org"
+                "testnet-seed.bitcoinsv.io",
+                "testnet-seed.cascharia.com"
         };
         addrSeeds = null;
         bip32HeaderPub = 0x043587CF;
@@ -90,10 +84,10 @@ public class BCCTestNet3Params extends AbstractBitcoinCashParams {
         cashAddrPrefix = "bchtest";
     }
 
-    private static BCCTestNet3Params instance;
-    public static synchronized BCCTestNet3Params get() {
+    private static BSVTestNet3Params instance;
+    public static synchronized BSVTestNet3Params get() {
         if (instance == null) {
-            instance = new BCCTestNet3Params();
+            instance = new BSVTestNet3Params();
         }
         return instance;
     }

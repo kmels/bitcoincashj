@@ -904,7 +904,7 @@ public class Transaction extends ChildMessage {
         addInput(input);
         Sha256Hash hash = hashForSignature(inputs.size() - 1, scriptPubKey, sigHash, anyoneCanPay);
         ECKey.ECDSASignature ecSig = sigKey.sign(hash);
-	    TransactionSignature txSig = new TransactionSignature(ecSig, sigHash, anyoneCanPay, false);
+	    TransactionSignature txSig = new TransactionSignature(ecSig, sigHash, anyoneCanPay, params.getUseForkId());
         if (ScriptPattern.isPayToPubKey(scriptPubKey))
             input.setScriptSig(ScriptBuilder.createInputScript(txSig));
         else if (ScriptPattern.isPayToPubKeyHash(scriptPubKey))
@@ -1043,7 +1043,7 @@ public class Transaction extends ChildMessage {
             boolean anyoneCanPay)
     {
         Sha256Hash hash = hashForSignatureWitness(inputIndex, redeemScript, value, hashType, anyoneCanPay);
-        return new TransactionSignature(key.sign(hash), hashType, anyoneCanPay, true);
+        return new TransactionSignature(key.sign(hash), hashType, anyoneCanPay, params.getUseForkId());
     }
     /**
      * Calculates a signature that is valid for being inserted into the input at the given position. This is simply
@@ -1072,7 +1072,7 @@ public class Transaction extends ChildMessage {
             boolean anyoneCanPay)
     {
         Sha256Hash hash = hashForSignatureWitness(inputIndex, redeemScript.getProgram(), value, hashType, anyoneCanPay);
-        return new TransactionSignature(key.sign(hash), hashType, anyoneCanPay, true);
+        return new TransactionSignature(key.sign(hash), hashType, anyoneCanPay, params.getUseForkId());
     }
     /**
      * Calculates a signature that is valid for being inserted into the input at the given position. This is simply
@@ -1109,7 +1109,7 @@ public class Transaction extends ChildMessage {
             boolean anyoneCanPay)
     {
         Sha256Hash hash = hashForSignatureWitness(inputIndex, redeemScript, value, hashType, anyoneCanPay);
-        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay, true);
+        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay, params.getUseForkId());
     }
 
     /**
@@ -1134,7 +1134,7 @@ public class Transaction extends ChildMessage {
             boolean anyoneCanPay)
     {
         Sha256Hash hash = hashForSignature(inputIndex, redeemScript.getProgram(), hashType, anyoneCanPay);
-        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay, false);
+        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay, params.getUseForkId());
     }
 
     public TransactionSignature calculateWitnessSignature(
@@ -1147,7 +1147,7 @@ public class Transaction extends ChildMessage {
             boolean anyoneCanPay)
     {
         Sha256Hash hash = hashForSignatureWitness(inputIndex, redeemScript.getProgram(), value, hashType, anyoneCanPay);
-        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay, true);
+        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay, params.getUseForkId());
     }
     /**
      * Calculates a signature that is valid for being inserted into the input at the given position. This is simply
@@ -1170,27 +1170,6 @@ public class Transaction extends ChildMessage {
         Sha256Hash hash = hashForSignature(inputIndex, redeemScript, hashType, anyoneCanPay);
         return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay);
     }
-
-    /**
-     * Calculates a signature that is valid for being inserted into the input at the given position. This is simply
-     * a wrapper around calling {@link Transaction#hashForSignature(int, byte[], Transaction.SigHash, boolean)}
-     * followed by {@link ECKey#sign(Sha256Hash)} and then returning a new {@link TransactionSignature}.
-     *
-     * @param inputIndex Which input to calculate the signature for, as an index.
-     * @param key The private key used to calculate the signature.
-     * @param aesKey The AES key to use for decryption of the private key. If null then no decryption is required.
-     * @param redeemScript The scriptPubKey that is being satisified, or the P2SH redeem script.
-     * @param hashType Signing mode, see the enum for documentation.
-     * @param anyoneCanPay Signing mode, see the SigHash enum for documentation.
-     * @return A newly calculated signature object that wraps the r, s and sighash components.
-     */
-    /*public TransactionSignature calculateSignature(int inputIndex, ECKey key,
-                                                   @Nullable KeyParameter aesKey,
-                                                   Script redeemScript,
-                                                   SigHash hashType, boolean anyoneCanPay) {
-        Sha256Hash hash = hashForSignature(inputIndex, redeemScript.getProgram(), hashType, anyoneCanPay);
-        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay);
-	}*/
 
     /**
      * <p>Calculates a signature hash, that is, a hash of a simplified form of the transaction. How exactly the transaction
@@ -1355,7 +1334,7 @@ public class Transaction extends ChildMessage {
             SigHash type,
             boolean anyoneCanPay)
     {
-        byte sigHashType = (byte) TransactionSignature.calcSigHashValue(type, anyoneCanPay, true);
+        byte sigHashType = (byte) TransactionSignature.calcSigHashValue(type, anyoneCanPay, params.getUseForkId());
         ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(length == UNKNOWN_LENGTH ? 256 : length + 4);
         try {
             byte[] hashPrevouts = new byte[32];
