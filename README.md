@@ -1,22 +1,18 @@
-[![Build Status](https://travis-ci.org/Stash-Crypto/blockchainj.png?branch=master)](https://travis-ci.org/Stash-Crypto/blockchainj)   [![Coverage Status](https://coveralls.io/repos/github/Stash-Crypto/blockchainj/badge.svg?branch=master)](https://coveralls.io/github/Stash-Crypto/bitcoincashj?branch=release-0.14) [![Javadocs](http://www.javadoc.io/badge/org.bitcoincashj/bitcoincashj-core.svg)](http://www.javadoc.io/doc/org.stash/blockchainj-core)
+[![Build Status](https://travis-ci.org/kmels/blockchainj.png?branch=master)](https://travis-ci.org/kmels/blockchainj)   [![Coverage Status](https://coveralls.io/repos/github/kmels/blockchainj/badge.svg?branch=master)](https://coveralls.io/github/kmels/blockchainj?branch=release-0.15) [![Javadocs](http://www.javadoc.io/badge/org.bitcoincashj/bitcoincashj-core.svg)](http://www.javadoc.io/doc/blockchainj/blockchainj-core)
 
 ### Welcome to BlockChainJ
 
 This library is a fork of Mike Hearn's original bitcoinj library aimed at supporting the Bitcoin and Bitcoin Cash eco-system.
 
-It allows maintaining a wallet and sending/receiving transactions without needing a full blockchain node. It comes with full documentation and some example apps showing how to use it.
+It allows maintaining a BIP 47 wallet for sending/receiving transactions without needing a full blockchain node. It comes with full documentation and some example apps showing how to use it.
 
 Release notes are [here](docs/Releases.md).
 
-### Technologies
-
-* Java 7 for the core modules, Java 8 for everything else
-* [Gradle 3.4+](https://gradle.org/) - for building the project
-* [Google Protocol Buffers](https://github.com/google/protobuf) - for use with serialization and hardware communications
-
 ### Getting started
 
-To get started, it is best to have the latest JDK and Gradle installed. The HEAD of the `master` branch contains the latest development code and various production releases are provided on feature branches.
+To get started, it is best to have the latest JDK (`openjdk`, `openjdk*openjfx`), `gradle` and `protoc` installed (`protobuf-compiler` in ubuntu/fedora).
+
+The HEAD of the `release-0.15` branch contains the latest development code and various production releases are provided on feature branches.
 
 #### Building from the command line
 
@@ -37,10 +33,6 @@ gradle javadoc
 to generate the JavaDocs.
 
 The outputs are under the `build` directory.
-
-#### Building from an IDE
-
-Alternatively, just import the project using your IDE. [IntelliJ](http://www.jetbrains.com/idea/download/) has Gradle integration built-in and has a free Community Edition. Simply use `File | New | Project from Existing Sources` and locate the `build.gradle` in the root of the cloned project source tree.
 
 ### Example applications
 
