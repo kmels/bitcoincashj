@@ -66,7 +66,14 @@ public class BCCTestNet3Params extends AbstractBitcoinCashParams {
 
         checkpoints.put(546, Sha256Hash.wrap("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70"));
         checkpoints.put(1155875, Sha256Hash.wrap("00000000f17c850672894b9a75b63a1e72830bbd5f4c8889b5c1a80e7faef138"));
+        // Nov, 13th 2017. DAA activation block.
         checkpoints.put(1188697, Sha256Hash.wrap("0000000000170ed0918077bde7b4d36cc4c91be69fa09211f748240dabe047fb"));
+        // May 15th 2018, re-enabling opcodes, max block size 32MB
+        checkpoints.put(1233070, Sha256Hash.wrap("0000000000000253c6201a2076663cfe4722e4c75f537552cc4ce989d15f7cd5"));
+        // Nov 15th 2018, CHECKDATASIG, ctor
+        checkpoints.put(1267996, Sha256Hash.wrap("00000000000001fae0095cd4bea16f1ce8ab63f3f660a03c6d8171485f484b24"));
+        // May 15th 2019, Schnorr + segwit recovery activation block
+        checkpoints.put(1303885, Sha256Hash.wrap("00000000000000479138892ef0e4fa478ccc938fb94df862ef5bde7e8dee23d3"));
 
         dnsSeeds = new String[] {
                 "testnet-seed.bitcoinabc.org",
